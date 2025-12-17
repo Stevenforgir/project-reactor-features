@@ -1,8 +1,11 @@
 package com.steven_udemy;
 
 import com.steven_udemy.callback.CallbacksExample;
+import com.steven_udemy.database.Database;
 import com.steven_udemy.error_handler.FallbackService;
 import com.steven_udemy.error_handler.HandlerDeprecatedVideogame;
+import com.steven_udemy.models.Console;
+import com.steven_udemy.models.Videogame;
 import com.steven_udemy.pipelines.PipelineAllComments;
 import com.steven_udemy.pipelines.PipelineSumAllPricesInDiscount;
 import com.steven_udemy.pipelines.PipelineTopSelling;
@@ -11,11 +14,17 @@ import lombok.extern.java.Log;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
 
 import java.time.Duration;
 
 @Slf4j
 public class Main {
+
+    private static boolean videogameForConsole(Videogame videogame, Console console) {
+        return videogame.getConsole() == console || videogame.getConsole() == Console.ALL;
+    }
+
     public static void main(String[] args) {
 
         /*//publisher
@@ -101,11 +110,24 @@ public class Main {
         /*FallbackService.callFallback()
                 .subscribe(v-> log.info(v.toString()));*/
 
-        CallbacksExample.callbacks()
+        /*CallbacksExample.callbacks()
                 .subscribe(
                         data -> log.debug(data.getName()), //onNext
                         err -> log.error(err.getMessage()), //onError
-                        () -> log.debug("Finish subs")); //onComplete
+                        () -> log.debug("Finish subs")); //onComplete*/
 
+        System.setProperty("prop1", "some-value"); //contexto
+        Database.getDataAsFlux()
+                .filterWhen(videogame -> Mono.deferContextual(ctx ->{
+                    var userId = ctx.getOrDefault("userId", "0");
+                    if(userId.startsWith("1")){
+                        return Mono.just(videogameForConsole(videogame, Console.XBOX));
+                    } else if(userId.startsWith("2")){
+                        return Mono.just(videogameForConsole(videogame, Console.PLAYSTATION));
+                    }
+                    return Mono.just(false);
+                })) //filterWhen trabaja de manera asincrona
+                .contextWrite(Context.of("userId", "10020192")) //Se pone despues del filterWhen para que el contexto este disponible en el filtro y siempre antes de la suscripcion
+                .subscribe(vg -> log.info("Recomended name {} console {}", vg.getName(), vg.getConsole()));
     }
 }
