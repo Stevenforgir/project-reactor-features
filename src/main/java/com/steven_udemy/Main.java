@@ -25,7 +25,7 @@ public class Main {
         return videogame.getConsole() == console || videogame.getConsole() == Console.ALL;
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
 
         /*//publisher
         Mono<String> mono = Mono.just("Hello world")
@@ -116,7 +116,7 @@ public class Main {
                         err -> log.error(err.getMessage()), //onError
                         () -> log.debug("Finish subs")); //onComplete*/
 
-        System.setProperty("prop1", "some-value"); //contexto
+        /*System.setProperty("prop1", "some-value"); //contexto
         Database.getDataAsFlux()
                 .filterWhen(videogame -> Mono.deferContextual(ctx ->{
                     var userId = ctx.getOrDefault("userId", "0");
@@ -128,6 +128,38 @@ public class Main {
                     return Mono.just(false);
                 })) //filterWhen trabaja de manera asincrona
                 .contextWrite(Context.of("userId", "10020192")) //Se pone despues del filterWhen para que el contexto este disponible en el filtro y siempre antes de la suscripcion
-                .subscribe(vg -> log.info("Recomended name {} console {}", vg.getName(), vg.getConsole()));
+                .subscribe(vg -> log.info("Recomended name {} console {}", vg.getName(), vg.getConsole()));*/
+
+        Flux<Integer> coldPublisher = Flux.range(1, 10); //El hot publisher emite sin importar si hay suscriptores o no
+
+        log.info("Cold publisher");
+
+        log.info("Subs 1 subscribed");
+        coldPublisher.subscribe(n -> log.info("[s1] {}", n));
+
+        log.info("Subs 2 subscribed");
+        coldPublisher.subscribe(n -> log.info("[s2] {}", n));
+
+        log.info("Subs 3 subscribed");
+        coldPublisher.subscribe(n -> log.info("[s3] {}", n));
+
+        Flux<Long> hotPublisher = Flux.interval(Duration.ofSeconds(1))//El hot publisher emite solo cuando hay suscriptores Se utiliza para transmitir audio o video en tiempo real
+                .publish()
+                .autoConnect(); //Conecta automaticamente el publisher al primer suscriptor
+
+        log.info("Hot publisher");
+
+        log.info("Subs 4 subscribed");
+        hotPublisher.subscribe(n -> log.info("[s4] {}", n));
+
+        Thread.sleep(2000);
+        log.info("Subs 5 subscribed");
+        hotPublisher.subscribe(n -> log.info("[s5] {}", n));
+
+        Thread.sleep(1000);
+        log.info("Subs 6 subscribed");
+        hotPublisher.subscribe(n -> log.info("[s6] {}", n));
+
+        Thread.sleep(10000);
     }
 }
