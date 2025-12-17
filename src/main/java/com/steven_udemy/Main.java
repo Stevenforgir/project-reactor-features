@@ -1,5 +1,6 @@
 package com.steven_udemy;
 
+import com.steven_udemy.callback.CallbacksExample;
 import com.steven_udemy.error_handler.FallbackService;
 import com.steven_udemy.error_handler.HandlerDeprecatedVideogame;
 import com.steven_udemy.pipelines.PipelineAllComments;
@@ -97,8 +98,14 @@ public class Main {
         /*HandlerDeprecatedVideogame.handleDeprecatedVideogameDefault()
                 .subscribe(System.out::println);*/
 
-        FallbackService.callFallback()
-                .subscribe(v-> log.info(v.toString()));
+        /*FallbackService.callFallback()
+                .subscribe(v-> log.info(v.toString()));*/
+
+        CallbacksExample.callbacks()
+                .subscribe(
+                        data -> log.debug(data.getName()), //onNext
+                        err -> log.error(err.getMessage()), //onError
+                        () -> log.debug("Finish subs")); //onComplete
 
     }
 }
